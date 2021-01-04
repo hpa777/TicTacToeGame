@@ -80,6 +80,7 @@ public class Main {
 
     /**
      * Проверка координат хода игрока
+     *
      * @return <code>boolean</code>
      */
     private static boolean isCellValid() {
@@ -90,9 +91,10 @@ public class Main {
 
     /**
      * Проверка хода игрока на победу и ответный ход компьютера
+     *
      * @param symbol символ
-     * @param x координата
-     * @param y координата
+     * @param x      координата
+     * @param y      координата
      * @return <code>boolean</code>
      */
     private static boolean checkWin(char symbol, int x, int y) {
@@ -224,7 +226,6 @@ public class Main {
                         ax--;
                     }
                     if (ay < SIZE - 1) {
-
                         ay++;
                     }
                 }
@@ -241,71 +242,110 @@ public class Main {
 
     /**
      * Сканирует игровое поле на наличие направлений в которых до выигрыша остается один ход
+     *
      * @param symbol символ
      * @return массив с координатами точки
      */
     private static int[] checkWinningCombination(char symbol) {
+        char invertSymbol = symbol == DOT_X ? DOT_O : DOT_X;
         for (int i = 0; i < SIZE; i++) {
             int dir = -1;
+
             int h = 0;
+            int[] hArr = null;
+
             int v = 0;
+            int[] vArr = null;
+
             int dd = 0;
+            int[] ddArr = null;
+
+            int ddp = 0;
+            int[] ddpArr = null;
+
             int ad = 0;
+            int[] adArr = null;
+
+            int adp = 0;
+            int[] adpArr = null;
+
             int dl = 0;
             int dx = i;
             int dy = 0;
+
             for (int j = 0; j < SIZE; j++) {
+                //Скан горизонтали
                 if (map[i][j] == symbol) {
                     h++;
                     if (h == SIZE - 1) {
                         dir = HORIZONTAL;
-                        break;
                     }
+                } else if (map[i][j] == invertSymbol) {
+                    h -= SIZE;
+                    dir = -1;
+                } else if (map[i][j] == DOT_EMPTY) {
+                    hArr = new int[] {i, j};
                 }
+                //Скан вертикали
                 if (map[j][i] == symbol) {
                     v++;
                     if (v == SIZE - 1) {
                         dir = VERTICAL;
-                        break;
                     }
+                } else if (map[j][i] == invertSymbol) {
+                    v -= SIZE;
+                    dir = -1;
+                } else if (map[j][i] == DOT_EMPTY) {
+                    vArr = new int[] {j, i};
                 }
+                //Скан диагоналей
                 if (dx > -1 && dy < SIZE) {
                     dl++;
                     if (map[dy][dx] == symbol) {
                         dd++;
+                    } else if (map[dy][dx] == invertSymbol) {
+                        dd -= SIZE;
+                    } else if (map[dy][dx] == DOT_EMPTY) {
+                        ddArr = new int[] {dy, dx};
+                    }
+                    if (map[SIZE - dx - 1][SIZE - dy - 1] == symbol) {
+                        ddp++;
+                    } else if (map[SIZE - dx - 1][SIZE - dy - 1] == invertSymbol) {
+                        ddp -= SIZE;
+                    } else if (map[SIZE - dx - 1][SIZE - dy - 1] == DOT_EMPTY) {
+                        ddpArr = new int[] {SIZE - dx - 1, SIZE - dy - 1};
                     }
                     if (map[SIZE - dy - 1][dx] == symbol) {
                         ad++;
+                    } else if (map[SIZE - dy - 1][dx] == invertSymbol) {
+                        ad -= SIZE;
+                    } else if (map[SIZE - dy - 1][dx] == DOT_EMPTY) {
+                        adArr = new int[] {SIZE - dy - 1, dx};
+                    }
+                    if (map[dx][SIZE - dy - 1] == symbol) {
+                        adp++;
+                    } else if (map[dx][SIZE - dy - 1] == invertSymbol) {
+                        adp -= SIZE;
+                    } else if (map[dx][SIZE - dy - 1] == DOT_EMPTY) {
+                        adpArr = new int[] {dx, SIZE - dy - 1};
                     }
                 }
                 dx--;
                 dy++;
             }
-            if (dir < 0 && dl >= MIN_DOTS_TO_WIN) {
+            if (dir == HORIZONTAL) {
+                return hArr;
+            } else if (dir == VERTICAL) {
+                return vArr;
+            } else if (dl >= MIN_DOTS_TO_WIN) {
                 if (dd == dl - 1) {
-                    dir = DOWNWARD_DIAGONAL;
+                    return ddArr;
                 } else if (ad == dl - 1) {
-                    dir = ASCENDING_DIAGONAL;
-                }
-            }
-            if (dir > -1) {
-                dx = i;
-                for (int j1 = 0; j1 < SIZE; j1++) {
-                    if (dir == HORIZONTAL && map[i][j1] == DOT_EMPTY) {
-                        return new int[]{i, j1};
-                    }
-                    if (dir == VERTICAL && map[j1][i] == DOT_EMPTY) {
-                        return new int[]{j1, i};
-                    }
-                    if (dx >= 0) {
-                        if (dir == DOWNWARD_DIAGONAL && map[j1][dx] == DOT_EMPTY) {
-                            return new int[]{j1, dx};
-                        }
-                        if (dir == ASCENDING_DIAGONAL && map[SIZE - j1 - 1][dx] == DOT_EMPTY) {
-                            return new int[]{SIZE - j1 - 1, dx};
-                        }
-                    }
-                    dx--;
+                    return adArr;
+                } else if (ddp == dl - 1) {
+                    return ddpArr;
+                } else if (adp == dl - 1) {
+                    return adpArr;
                 }
             }
         }
