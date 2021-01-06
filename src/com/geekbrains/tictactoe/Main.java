@@ -26,11 +26,12 @@ public class Main {
     private static int humanTurnX, humanTurnY;
 
     public static void main(String[] args) {
+        Main main = new Main();
         initMap();
         do {
             printMap();
             humanTurn();
-        } while (!checkWin(DOT_X, humanTurnX, humanTurnY));
+        } while (!main.checkWin(DOT_X, humanTurnX, humanTurnY));
         scanner.close();
     }
 
@@ -88,6 +89,105 @@ public class Main {
         return map[humanTurnY][humanTurnX] == DOT_EMPTY;
     }
 
+    /**
+     * Класс содержащий информацию о векторе игрового поля.
+     */
+    private class Vector {
+
+        private int vectorDirection;
+
+        private int vectorLength = 0;
+
+        public int xCount = 0;
+
+        private int oCount = 0;
+
+        public int emptyX = -1;
+        
+        public int emptyY = -1;
+
+        public Vector(int vectorDirection) {
+            this.vectorDirection = vectorDirection;
+        }
+
+        /**
+         * Вектор содержит пустую точку
+         * @return <code>boolean</code>
+         */
+        public boolean hasEmptyPoint() {
+            return this.emptyX >= 0 && this.emptyY >= 0;
+        }
+
+        /**
+         * Добавляем точку ветора
+         * @param symbol
+         * @param x
+         * @param y
+         */
+        public void addSymbol(char symbol, int x, int y) {
+            switch (symbol) {
+                case DOT_X:
+                   this.xCount++;
+                   break;
+                case DOT_O:
+                    this.oCount++;
+                    break;
+                case DOT_EMPTY:
+                    this.emptyX = x;
+                    this.emptyY = y;
+                    break;
+            }
+            this.vectorLength++;
+        }
+
+        /**
+         * Проверяем вектор на "победу"
+         * @param symbol
+         * @return
+         */
+        public boolean checkWinBySymbol(char symbol) {
+            if (this.vectorDirection == HORIZONTAL || this.vectorDirection == VERTICAL) {
+                if (symbol == DOT_X && this.xCount == this.vectorLength) {
+                    return true;
+                }
+                if (symbol == DOT_O && this.oCount == this.vectorLength) {
+                    return true;
+                }
+            } else {
+                if (symbol == DOT_X && this.xCount == this.vectorLength && this.vectorLength >= MIN_DOTS_TO_WIN) {
+                    return true;
+                }
+                if (symbol == DOT_O && this.oCount == this.vectorLength && this.vectorLength >= MIN_DOTS_TO_WIN) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Проверяем вектор на потенциальную победу (один ход до победы)
+         * @param symbol
+         * @return
+         */
+        public boolean checkWinningCombination(char symbol) {
+            if (this.vectorDirection == HORIZONTAL || this.vectorDirection == VERTICAL) {
+                if (symbol == DOT_X && this.oCount == 0 && this.xCount == this.vectorLength - 1) {
+                    return true;
+                }
+                if (symbol == DOT_O && this.xCount == 0 && this.oCount == this.vectorLength - 1) {
+                    return true;
+                }
+            } else {
+                if (symbol == DOT_X && this.oCount == 0 && this.xCount == this.vectorLength - 1 && this.vectorLength >= MIN_DOTS_TO_WIN) {
+                    return true;
+                }
+                if (symbol == DOT_O && this.xCount == 0 && this.oCount == this.vectorLength - 1 && this.vectorLength >= MIN_DOTS_TO_WIN) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
 
     /**
      * Проверка хода игрока на победу и ответный ход компьютера
@@ -97,11 +197,10 @@ public class Main {
      * @param y      координата
      * @return <code>boolean</code>
      */
-    private static boolean checkWin(char symbol, int x, int y) {
+    private boolean checkWin(char symbol, int x, int y) {
         //Находим начальную точку нисходящей диагонали содержащей точку
         int downwardDiagonalX = x - y;
         int downwardDiagonalY = 0;
-        int downwardDiagonalLength = 0;
         if (downwardDiagonalX < 0) {
             downwardDiagonalY = Math.abs(downwardDiagonalX);
             downwardDiagonalX = 0;
@@ -109,47 +208,38 @@ public class Main {
         //Находим начальную точку восходящей диагонали содержащей точку
         int ascendingDiagonalX = x - SIZE + y + 1;
         int ascendingDiagonalY = SIZE - 1;
-        int ascendingDiagonalLength = 0;
         if (ascendingDiagonalX < 0) {
             ascendingDiagonalY += ascendingDiagonalX;
             ascendingDiagonalX = 0;
         }
         //Заполняем статистику по направлениям
-        int[] statByDirections = new int[COUNT_DIRECTIONS];
+        Vector[] statByDirections = new Vector[COUNT_DIRECTIONS];
+        for (int i = 0; i < COUNT_DIRECTIONS; i++) {
+            statByDirections[i] = new Vector(i);
+        }        
         for (int i = 0; i < SIZE; i++) {
-            if (map[y][i] == symbol) {
-                statByDirections[HORIZONTAL]++;
-            }
-            if (map[i][x] == symbol) {
-                statByDirections[VERTICAL]++;
-            }
+            statByDirections[HORIZONTAL].addSymbol(map[y][i], i, y);
+            statByDirections[VERTICAL].addSymbol(map[i][x], x, i);            
             if (downwardDiagonalX < SIZE && downwardDiagonalY < SIZE) {
-                if (map[downwardDiagonalY][downwardDiagonalX] == symbol) {
-                    statByDirections[DOWNWARD_DIAGONAL]++;
-                }
-                downwardDiagonalLength++;
+                statByDirections[DOWNWARD_DIAGONAL].addSymbol(map[downwardDiagonalY][downwardDiagonalX], downwardDiagonalX, downwardDiagonalY); 
                 downwardDiagonalX++;
                 downwardDiagonalY++;
             }
             if (ascendingDiagonalX < SIZE && ascendingDiagonalY > -1) {
-                if (map[ascendingDiagonalY][ascendingDiagonalX] == symbol) {
-                    statByDirections[ASCENDING_DIAGONAL]++;
-                }
-                ascendingDiagonalLength++;
+                statByDirections[ASCENDING_DIAGONAL].addSymbol(map[ascendingDiagonalY][ascendingDiagonalX], ascendingDiagonalX, ascendingDiagonalY);
                 ascendingDiagonalX++;
                 ascendingDiagonalY--;
             }
         }
 
         //Выигрышь
-        if (statByDirections[HORIZONTAL] == SIZE
-                || statByDirections[VERTICAL] == SIZE
-                || (statByDirections[DOWNWARD_DIAGONAL] == downwardDiagonalLength && downwardDiagonalLength >= MIN_DOTS_TO_WIN)
-                || (statByDirections[ASCENDING_DIAGONAL] == ascendingDiagonalLength && ascendingDiagonalLength >= MIN_DOTS_TO_WIN)) {
-            printMap();
-            String message = symbol == DOT_X ? "Вы выиграли" : "Компьютер выиграл";
-            System.out.println(message);
-            return true;
+        for (int i = 0; i < COUNT_DIRECTIONS; i++) {
+            if (statByDirections[i].checkWinBySymbol(symbol)) {
+                printMap();
+                String message = symbol == DOT_X ? "Вы выиграли" : "Компьютер выиграл";
+                System.out.println(message);
+                return true;
+            }
         }
         //Ничья
         if (turnCount == SIZE * SIZE) {
@@ -167,75 +257,45 @@ public class Main {
                 return checkWin(DOT_O, c[1], c[0]);
             }
             // Ищем выигрышную комбинацию игрока
-            c = checkWinningCombination(DOT_X);
-            if (c != null) {
-                map[c[0]][c[1]] = DOT_O;
-                turnCount++;
-                return checkWin(DOT_O, c[1], c[0]);
+            for (Vector vector :
+                    statByDirections) {
+                if (vector.checkWinningCombination(DOT_X)) {
+                    map[vector.emptyY][vector.emptyX] = DOT_O;
+                    turnCount++;
+                    return checkWin(DOT_O, vector.emptyX, vector.emptyY);
+                }
             }
             // Блокируем комбинацию игрока
-            boolean turn = false;
-            do {
-                int dir = 0;
-                int max = statByDirections[0];
-                boolean allDirEquals = true;
-                for (int i = 1; i < COUNT_DIRECTIONS; i++) {
-                    if (statByDirections[i] > max) {
-                        max = statByDirections[i];
-                        dir = i;
-                    }
-                    if (statByDirections[i - 1] != statByDirections[i]) {
-                        allDirEquals = false;
-                    }
+            int dir = 0;
+            int max = -1;
+            boolean allDirEquals = true;
+            for (int i = 0; i < COUNT_DIRECTIONS; i++) {
+                if (!statByDirections[i].hasEmptyPoint()) {
+                    continue;
+                } else if (max < 0) {
+                    max = statByDirections[i].xCount;
+                    dir = i;
+                } else if (statByDirections[i].xCount > max) {
+                    max = statByDirections[i].xCount;
+                    dir = i;
+                    allDirEquals = false;
                 }
-                if (allDirEquals) {
-                    dir = downwardDiagonalLength > ascendingDiagonalLength ? DOWNWARD_DIAGONAL : ASCENDING_DIAGONAL;
+            }
+            if (allDirEquals) {
+                if (statByDirections[DOWNWARD_DIAGONAL].hasEmptyPoint()) {
+                    dir = DOWNWARD_DIAGONAL;
+                } else if (statByDirections[ASCENDING_DIAGONAL].hasEmptyPoint()) {
+                    dir = ASCENDING_DIAGONAL;
+                } else if (statByDirections[HORIZONTAL].hasEmptyPoint()) {
+                    dir = HORIZONTAL;
+                } else  if (statByDirections[VERTICAL].hasEmptyPoint()) {
+                    dir = VERTICAL;
                 }
-                int dx = downwardDiagonalX - 1;
-                int dy = downwardDiagonalY - 1;
-                int ax = ascendingDiagonalX - 1;
-                int ay = ascendingDiagonalY + 1;
-
-                for (int i = 0; i < SIZE; i++) {
-                    if (dir == HORIZONTAL && map[y][i] == DOT_EMPTY) {
-                        x = i;
-                        turn = true;
-                        break;
-                    } else if (dir == VERTICAL && map[i][x] == DOT_EMPTY) {
-                        y = i;
-                        turn = true;
-                        break;
-                    } else if (dir == DOWNWARD_DIAGONAL && map[dy][dx] == DOT_EMPTY) {
-                        x = dx;
-                        y = dy;
-                        turn = true;
-                        break;
-                    } else if (dir == ASCENDING_DIAGONAL && map[ay][ax] == DOT_EMPTY) {
-                        x = ax;
-                        y = ay;
-                        turn = true;
-                        break;
-                    }
-                    if (dx > 0) {
-                        dx--;
-                    }
-                    if (dy > 0) {
-                        dy--;
-                    }
-                    if (ax > 0) {
-                        ax--;
-                    }
-                    if (ay < SIZE - 1) {
-                        ay++;
-                    }
-                }
-                if (!turn) {
-                    statByDirections[dir] = 0;
-                }
-            } while (!turn);
-            map[y][x] = DOT_O;
+            }
+            Vector vector = statByDirections[dir];
+            map[vector.emptyY][vector.emptyX] = DOT_O;
             turnCount++;
-            return checkWin(DOT_O, x, y);
+            return checkWin(DOT_O, vector.emptyX, vector.emptyY);
         }
         return false;
     }
@@ -351,6 +411,5 @@ public class Main {
         }
         return null;
     }
-
 
 }
