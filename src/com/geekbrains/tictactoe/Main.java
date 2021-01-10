@@ -118,14 +118,20 @@ public class Main {
             return this.emptyX >= 0 && this.emptyY >= 0;
         }
 
+        public void turnToEmpty(char symbol) {
+            if (this.hasEmptyPoint()) {
+                map[emptyY][emptyX] = symbol;
+                turnCount++;
+            }
+        }
+
         /**
-         * Добавляем точку ветора
-         * @param symbol
+         * Добавляем точку вектора
          * @param x
          * @param y
          */
-        public void addSymbol(char symbol, int x, int y) {
-            switch (symbol) {
+        public void addSymbol(int x, int y) {
+            switch (map[y][x]) {
                 case DOT_X:
                    this.xCount++;
                    break;
@@ -218,15 +224,15 @@ public class Main {
             statByDirections[i] = new Vector(i);
         }        
         for (int i = 0; i < SIZE; i++) {
-            statByDirections[HORIZONTAL].addSymbol(map[y][i], i, y);
-            statByDirections[VERTICAL].addSymbol(map[i][x], x, i);            
+            statByDirections[HORIZONTAL].addSymbol(i, y);
+            statByDirections[VERTICAL].addSymbol(x, i);
             if (downwardDiagonalX < SIZE && downwardDiagonalY < SIZE) {
-                statByDirections[DOWNWARD_DIAGONAL].addSymbol(map[downwardDiagonalY][downwardDiagonalX], downwardDiagonalX, downwardDiagonalY); 
+                statByDirections[DOWNWARD_DIAGONAL].addSymbol(downwardDiagonalX, downwardDiagonalY);
                 downwardDiagonalX++;
                 downwardDiagonalY++;
             }
             if (ascendingDiagonalX < SIZE && ascendingDiagonalY > -1) {
-                statByDirections[ASCENDING_DIAGONAL].addSymbol(map[ascendingDiagonalY][ascendingDiagonalX], ascendingDiagonalX, ascendingDiagonalY);
+                statByDirections[ASCENDING_DIAGONAL].addSymbol(ascendingDiagonalX, ascendingDiagonalY);
                 ascendingDiagonalX++;
                 ascendingDiagonalY--;
             }
@@ -250,18 +256,18 @@ public class Main {
         //Ход компьютера
         if (symbol != DOT_O) {
             // Ищем выигрышную комбинацию компьютера
-            int[] c = checkWinningCombination(DOT_O);
-            if (c != null) {
-                map[c[0]][c[1]] = DOT_O;
-                turnCount++;
-                return checkWin(DOT_O, c[1], c[0]);
+            {
+                Vector vector = this.searchWinCombination(DOT_O);
+                if (vector != null) {
+                    vector.turnToEmpty(DOT_O);
+                    return checkWin(DOT_O, vector.emptyX, vector.emptyY);
+                }
             }
             // Ищем выигрышную комбинацию игрока
             for (Vector vector :
                     statByDirections) {
                 if (vector.checkWinningCombination(DOT_X)) {
-                    map[vector.emptyY][vector.emptyX] = DOT_O;
-                    turnCount++;
+                    vector.turnToEmpty(DOT_O);
                     return checkWin(DOT_O, vector.emptyX, vector.emptyY);
                 }
             }
@@ -293,8 +299,7 @@ public class Main {
                 }
             }
             Vector vector = statByDirections[dir];
-            map[vector.emptyY][vector.emptyX] = DOT_O;
-            turnCount++;
+            vector.turnToEmpty(DOT_O);
             return checkWin(DOT_O, vector.emptyX, vector.emptyY);
         }
         return false;
@@ -302,111 +307,48 @@ public class Main {
 
     /**
      * Сканирует игровое поле на наличие направлений в которых до выигрыша остается один ход
-     *
-     * @param symbol символ
-     * @return массив с координатами точки
+     * @param symbol
+     * @return Vector
      */
-    private static int[] checkWinningCombination(char symbol) {
-        char invertSymbol = symbol == DOT_X ? DOT_O : DOT_X;
+    private Vector searchWinCombination(char symbol) {
         for (int i = 0; i < SIZE; i++) {
-            int dir = -1;
-
-            int h = 0;
-            int[] hArr = null;
-
-            int v = 0;
-            int[] vArr = null;
-
-            int dd = 0;
-            int[] ddArr = null;
-
-            int ddp = 0;
-            int[] ddpArr = null;
-
-            int ad = 0;
-            int[] adArr = null;
-
-            int adp = 0;
-            int[] adpArr = null;
-
-            int dl = 0;
+            Vector horizontalVector = new Vector(HORIZONTAL);
+            Vector verticalVector = new Vector(VERTICAL);
+            Vector downwardDiagonalVector = new Vector(DOWNWARD_DIAGONAL);
+            Vector ascendingDiagonalVector = new Vector(ASCENDING_DIAGONAL);
+            Vector downwardDiagonalLeftVector = new Vector(DOWNWARD_DIAGONAL);
+            Vector ascendingDiagonalLeftVector = new Vector(ASCENDING_DIAGONAL);
             int dx = i;
             int dy = 0;
-
             for (int j = 0; j < SIZE; j++) {
-                //Скан горизонтали
-                if (map[i][j] == symbol) {
-                    h++;
-                    if (h == SIZE - 1) {
-                        dir = HORIZONTAL;
-                    }
-                } else if (map[i][j] == invertSymbol) {
-                    h -= SIZE;
-                    dir = -1;
-                } else if (map[i][j] == DOT_EMPTY) {
-                    hArr = new int[] {i, j};
-                }
-                //Скан вертикали
-                if (map[j][i] == symbol) {
-                    v++;
-                    if (v == SIZE - 1) {
-                        dir = VERTICAL;
-                    }
-                } else if (map[j][i] == invertSymbol) {
-                    v -= SIZE;
-                    dir = -1;
-                } else if (map[j][i] == DOT_EMPTY) {
-                    vArr = new int[] {j, i};
-                }
-                //Скан диагоналей
+                horizontalVector.addSymbol(j, i);
+                verticalVector.addSymbol(i, j);
                 if (dx > -1 && dy < SIZE) {
-                    dl++;
-                    if (map[dy][dx] == symbol) {
-                        dd++;
-                    } else if (map[dy][dx] == invertSymbol) {
-                        dd -= SIZE;
-                    } else if (map[dy][dx] == DOT_EMPTY) {
-                        ddArr = new int[] {dy, dx};
-                    }
-                    if (map[SIZE - dx - 1][SIZE - dy - 1] == symbol) {
-                        ddp++;
-                    } else if (map[SIZE - dx - 1][SIZE - dy - 1] == invertSymbol) {
-                        ddp -= SIZE;
-                    } else if (map[SIZE - dx - 1][SIZE - dy - 1] == DOT_EMPTY) {
-                        ddpArr = new int[] {SIZE - dx - 1, SIZE - dy - 1};
-                    }
-                    if (map[SIZE - dy - 1][dx] == symbol) {
-                        ad++;
-                    } else if (map[SIZE - dy - 1][dx] == invertSymbol) {
-                        ad -= SIZE;
-                    } else if (map[SIZE - dy - 1][dx] == DOT_EMPTY) {
-                        adArr = new int[] {SIZE - dy - 1, dx};
-                    }
-                    if (map[dx][SIZE - dy - 1] == symbol) {
-                        adp++;
-                    } else if (map[dx][SIZE - dy - 1] == invertSymbol) {
-                        adp -= SIZE;
-                    } else if (map[dx][SIZE - dy - 1] == DOT_EMPTY) {
-                        adpArr = new int[] {dx, SIZE - dy - 1};
-                    }
+                    downwardDiagonalVector.addSymbol(dx, dy);
+                    downwardDiagonalLeftVector.addSymbol(SIZE - dy - 1, SIZE - dx - 1);
+                    ascendingDiagonalVector.addSymbol(dx, SIZE - dy - 1);
+                    ascendingDiagonalLeftVector.addSymbol(SIZE - dy - 1, dx);
                 }
                 dx--;
                 dy++;
             }
-            if (dir == HORIZONTAL) {
-                return hArr;
-            } else if (dir == VERTICAL) {
-                return vArr;
-            } else if (dl >= MIN_DOTS_TO_WIN) {
-                if (dd == dl - 1) {
-                    return ddArr;
-                } else if (ad == dl - 1) {
-                    return adArr;
-                } else if (ddp == dl - 1) {
-                    return ddpArr;
-                } else if (adp == dl - 1) {
-                    return adpArr;
-                }
+            if (horizontalVector.checkWinningCombination(symbol)) {
+                return horizontalVector;
+            }
+            if (verticalVector.checkWinningCombination(symbol)) {
+                return verticalVector;
+            }
+            if (downwardDiagonalVector.checkWinningCombination(symbol)) {
+                return downwardDiagonalVector;
+            }
+            if (downwardDiagonalLeftVector.checkWinningCombination(symbol)) {
+                return downwardDiagonalLeftVector;
+            }
+            if (ascendingDiagonalVector.checkWinningCombination(symbol)) {
+                return ascendingDiagonalVector;
+            }
+            if (ascendingDiagonalLeftVector.checkWinningCombination(symbol)) {
+                return ascendingDiagonalLeftVector;
             }
         }
         return null;
