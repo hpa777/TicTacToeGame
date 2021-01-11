@@ -14,12 +14,6 @@ public class Main {
     private static final char DOT_X = 'X';
     private static final char DOT_O = 'O';
 
-    private static final int HORIZONTAL = 0;
-    private static final int VERTICAL = 1;
-    private static final int DOWNWARD_DIAGONAL = 2;
-    private static final int ASCENDING_DIAGONAL = 3;
-    private static final int COUNT_DIRECTIONS = 4;
-
     private static char[][] map;
     private static int turnCount = 0;
     private static final Scanner scanner = new Scanner(System.in);
@@ -89,12 +83,17 @@ public class Main {
         return map[humanTurnY][humanTurnX] == DOT_EMPTY;
     }
 
+    enum Type {
+        HORIZONTAL,
+        DIAGONAL
+    }
+
     /**
      * Класс содержащий информацию о векторе игрового поля.
      */
     private class Vector {
 
-        private int vectorDirection;
+        private Type vectorDir;
 
         private int vectorLength = 0;
 
@@ -106,8 +105,8 @@ public class Main {
         
         public int emptyY = -1;
 
-        public Vector(int vectorDirection) {
-            this.vectorDirection = vectorDirection;
+        public Vector(Type vectorDirection) {
+            this.vectorDir = vectorDirection;
         }
 
         /**
@@ -118,6 +117,10 @@ public class Main {
             return this.emptyX >= 0 && this.emptyY >= 0;
         }
 
+        /**
+         * Делаем ход в пустую точку
+         * @param symbol
+         */
         public void turnToEmpty(char symbol) {
             if (this.hasEmptyPoint()) {
                 map[emptyY][emptyX] = symbol;
@@ -152,7 +155,7 @@ public class Main {
          * @return
          */
         public boolean checkWinBySymbol(char symbol) {
-            if (this.vectorDirection == HORIZONTAL || this.vectorDirection == VERTICAL) {
+            if (this.vectorDir == Type.HORIZONTAL) {
                 if (symbol == DOT_X && this.xCount == this.vectorLength) {
                     return true;
                 }
@@ -176,7 +179,7 @@ public class Main {
          * @return
          */
         public boolean checkWinningCombination(char symbol) {
-            if (this.vectorDirection == HORIZONTAL || this.vectorDirection == VERTICAL) {
+            if (this.vectorDir == Type.HORIZONTAL) {
                 if (symbol == DOT_X && this.oCount == 0 && this.xCount == this.vectorLength - 1) {
                     return true;
                 }
@@ -194,6 +197,12 @@ public class Main {
             return false;
         }
     }
+
+    private static final int HORIZONTAL = 0;
+    private static final int VERTICAL = 1;
+    private static final int DOWNWARD_DIAGONAL = 2;
+    private static final int ASCENDING_DIAGONAL = 3;
+    private static final int COUNT_DIRECTIONS = 4;
 
     /**
      * Проверка хода игрока на победу и ответный ход компьютера
@@ -219,10 +228,12 @@ public class Main {
             ascendingDiagonalX = 0;
         }
         //Заполняем статистику по направлениям
-        Vector[] statByDirections = new Vector[COUNT_DIRECTIONS];
-        for (int i = 0; i < COUNT_DIRECTIONS; i++) {
-            statByDirections[i] = new Vector(i);
-        }        
+        Vector[] statByDirections = new Vector[] {
+                new Vector(Type.HORIZONTAL),
+                new Vector(Type.HORIZONTAL),
+                new Vector(Type.DIAGONAL),
+                new Vector(Type.DIAGONAL)
+        };
         for (int i = 0; i < SIZE; i++) {
             statByDirections[HORIZONTAL].addSymbol(i, y);
             statByDirections[VERTICAL].addSymbol(x, i);
@@ -312,12 +323,12 @@ public class Main {
      */
     private Vector searchWinCombination(char symbol) {
         for (int i = 0; i < SIZE; i++) {
-            Vector horizontalVector = new Vector(HORIZONTAL);
-            Vector verticalVector = new Vector(VERTICAL);
-            Vector downwardDiagonalVector = new Vector(DOWNWARD_DIAGONAL);
-            Vector ascendingDiagonalVector = new Vector(ASCENDING_DIAGONAL);
-            Vector downwardDiagonalLeftVector = new Vector(DOWNWARD_DIAGONAL);
-            Vector ascendingDiagonalLeftVector = new Vector(ASCENDING_DIAGONAL);
+            Vector horizontalVector = new Vector(Type.HORIZONTAL);
+            Vector verticalVector = new Vector(Type.HORIZONTAL);
+            Vector downwardDiagonalVector = new Vector(Type.DIAGONAL);
+            Vector ascendingDiagonalVector = new Vector(Type.DIAGONAL);
+            Vector downwardDiagonalLeftVector = new Vector(Type.DIAGONAL);
+            Vector ascendingDiagonalLeftVector = new Vector(Type.DIAGONAL);
             int dx = i;
             int dy = 0;
             for (int j = 0; j < SIZE; j++) {
